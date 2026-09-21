@@ -1,0 +1,29 @@
+graph TB
+    SM["Store Manager<br/>(uploads store-level feeds,<br/>corrects local prices)"]
+    CM["Category / Pricing Manager<br/>(cross-store search & edit,<br/>price governance)"]
+    ADM["System Admin<br/>(user/role management)"]
+
+    subgraph SYS["Retail Pricing Feed Manager"]
+        APP["Pricing Feed Management System<br/>(this project)"]
+    end
+
+    IDP["Corporate Identity Provider<br/>(Okta / Azure AD - OAuth2/OIDC)"]
+    STORE_SYS["In-Store POS / ERP Systems<br/>(produce daily CSV price feeds per store/region)"]
+    DWH["Enterprise Data Warehouse / BI<br/>(consumes pricing history for reporting)"]
+    DOWNSTREAM["Downstream Price Publishing<br/>(POS terminals, e-commerce catalog - out of scope)"]
+
+    SM -->|"Upload CSV feed, search/edit prices"| APP
+    CM -->|"Search/edit prices across stores"| APP
+    ADM -->|"Manage roles/access"| APP
+    APP -->|"AuthN/AuthZ"| IDP
+    STORE_SYS -->|"CSV export (Store ID, SKU, Product Name, Price, Date)"| SM
+    APP -->|"Pricing + audit data extract"| DWH
+    APP -.->|"Future: publish approved prices"| DOWNSTREAM
+
+    classDef actor fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef sys fill:#dcfce7,stroke:#15803d,color:#14532d
+    classDef ext fill:#f1f5f9,stroke:#475569,color:#334155
+
+    class SM,CM,ADM actor
+    class APP sys
+    class IDP,STORE_SYS,DWH,DOWNSTREAM ext

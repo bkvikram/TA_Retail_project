@@ -1,0 +1,60 @@
+graph TB
+    Users["Store & Category Managers<br/>(multi-country)"]
+
+    subgraph EDGE["Edge / Delivery"]
+        CDN["CDN<br/>(CloudFront / Azure CDN / Cloud CDN)<br/>React SPA static assets"]
+        WAF["WAF + API Gateway / Load Balancer<br/>TLS termination, rate limiting"]
+    end
+
+    subgraph APP_TIER["Backend tier — auto-scaled, multi-AZ"]
+        API1["FastAPI pod"]
+        API2["FastAPI pod"]
+        API3["FastAPI pod N"]
+    end
+
+    subgraph ASYNC["Async ingestion pipeline"]
+        QUEUE["Durable queue<br/>(SQS / Service Bus / Pub-Sub)"]
+        WORKERS["Ingestion worker pool<br/>CSV parse + batched upsert<br/>(autoscales on queue depth)"]
+        OBJSTORE["Object storage<br/>(S3 / Blob / GCS)<br/>raw uploaded CSVs"]
+    end
+
+    subgraph DATA_TIER["Data tier"]
+        PG_PRIMARY[("PostgreSQL primary<br/>writes")]
+        PG_REPLICA[("Read replica(s)<br/>search / reporting reads")]
+        CACHE[("Redis cache<br/>hot search queries")]
+    end
+
+    subgraph PLATFORM["Cross-cutting platform services"]
+        IDP["Corporate IdP<br/>OAuth2 / OIDC"]
+        OBS["Observability<br/>metrics, logs, tracing"]
+    end
+
+    DWH["Enterprise Data Warehouse / BI"]
+
+    Users --> CDN --> WAF
+    WAF --> API1 & API2 & API3
+    API1 & API2 & API3 -->|AuthN| IDP
+    API1 & API2 & API3 -->|writes| PG_PRIMARY
+    API1 & API2 & API3 -->|reads| PG_REPLICA
+    API1 & API2 & API3 -.->|cache lookup| CACHE
+    PG_PRIMARY -->|streaming replication| PG_REPLICA
+    API1 & API2 & API3 -->|enqueue upload job| QUEUE
+    API1 & API2 & API3 -->|store raw file| OBJSTORE
+    QUEUE --> WORKERS
+    OBJSTORE --> WORKERS
+    WORKERS -->|batched upsert| PG_PRIMARY
+    API1 & API2 & API3 -.-> OBS
+    WORKERS -.-> OBS
+    PG_PRIMARY --> DWH
+
+    classDef edge fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef app fill:#dcfce7,stroke:#15803d,color:#14532d
+    classDef async fill:#fef9c3,stroke:#a16207,color:#713f12
+    classDef data fill:#fae8ff,stroke:#a21caf,color:#701a75
+    classDef platform fill:#f1f5f9,stroke:#475569,color:#334155
+
+    class CDN,WAF edge
+    class API1,API2,API3 app
+    class QUEUE,WORKERS,OBJSTORE async
+    class PG_PRIMARY,PG_REPLICA,CACHE data
+    class IDP,OBS platform

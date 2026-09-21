@@ -1,0 +1,12 @@
+graph LR
+    Browser["Browser<br/>React SPA (Vite)"]
+    FE["frontend container<br/>Nginx serving static build,<br/>proxies /api/*"]
+    BE["backend container<br/>FastAPI (Uvicorn, async)"]
+    DB[("PostgreSQL 16<br/>pricing_records,<br/>pricing_audit_log,<br/>upload_jobs")]
+
+    Browser --> FE
+    FE -->|"/api/* reverse proxy"| BE
+    BE -->|"asyncpg"| DB
+
+    classDef box fill:#dcfce7,stroke:#15803d,color:#14532d
+    class Browser,FE,BE,DB box
